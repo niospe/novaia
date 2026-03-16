@@ -1,5 +1,5 @@
-// api/dashboard.js
-// Vercel Serverless Function — llama a Loyverse y devuelve todos los datos al frontend
+// api/dashboard.js — Vercel Serverless Function
+// Proxy seguro entre el dashboard y la API de Loyverse (resuelve CORS)
 
 const TOKEN = process.env.LOYVERSE_TOKEN;
 const BASE  = "https://api.loyverse.com/v1.0";
@@ -14,14 +14,19 @@ async function lv(endpoint, params = {}) {
   return res.json();
 }
 
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+module.exports = async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin",  "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "GET")    return res.status(405).json({ error: "Method not allowed" });
 
-  if (!TOKEN) return res.status(500).json({ error: "LOYVERSE_TOKEN no configurado en Vercel → Settings → Environment Variables" });
+  if (!TOKEN) {
+    return res.status(500).json({
+      error: "LOYVERSE_TOKEN no configurado. Ve a Vercel → Settings → Environment Variables y agrégalo, luego redespliega."
+    });
+  }
 
   try {
     const now      = new Date();
@@ -41,19 +46,19 @@ export default async function handler(req, res) {
     ]);
 
     let inventory = { inventory_levels: [] };
-    try { inventory = await lv("/inventory", { limit: 250 }); } catch {}
+    try { inventory = await lv("/inventory", { limit: 250 }); } catch (_) {}
 
-    res.status(200).json({
+    return res.status(200).json({
       store:            stores.stores?.[0] || {},
-      receipts_today:   rToday.receipts  || [],
-      receipts_week:    rWeek.receipts   || [],
-      receipts_month:   rMonth.receipts  || [],
-      receipts_year:    rYear.receipts   || [],
-      items:            items.items      || [],
+      receipts_today:   rToday.receipts   || [],
+      receipts_week:    rWeek.receipts    || [],
+      receipts_month:   rMonth.receipts   || [],
+      receipts_year:    rYear.receipts    || [],
+      items:            items.items       || [],
       inventory_levels: inventory.inventory_levels || [],
     });
   } catch (e) {
     console.error("Dashboard error:", e.message);
-    res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message });
   }
-}
+};
