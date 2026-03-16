@@ -36,8 +36,7 @@ nova-loyverse-vercel/
    - En Vercel: **Settings → Environment Variables**
    - Agregar:
      ```
-     Name:  LOYVERSE_TOKEN
-     Value: b46875e880e94ee69ce3160d1c7670f6
+    
      ```
    - Clic en **Save**
    - Ir a **Deployments → Redeploy** para que tome el token
