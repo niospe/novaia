@@ -15,7 +15,6 @@ async function lv(endpoint, params = {}) {
 }
 
 export default async function handler(req, res) {
-  // CORS — permite que tu frontend (Vercel u otro) llame a esta función
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -32,7 +31,6 @@ export default async function handler(req, res) {
     const yearISO  = new Date(now.getFullYear(), 0, 1).toISOString();
     const nowISO   = now.toISOString();
 
-    // Todas las llamadas en paralelo
     const [stores, rToday, rWeek, rMonth, rYear, items] = await Promise.all([
       lv("/stores"),
       lv("/receipts", { date_from: todayISO,  date_to: nowISO, limit: 250 }),
@@ -42,7 +40,6 @@ export default async function handler(req, res) {
       lv("/items",    { limit: 250 }),
     ]);
 
-    // Inventario (opcional — no falla si no está disponible)
     let inventory = { inventory_levels: [] };
     try { inventory = await lv("/inventory", { limit: 250 }); } catch {}
 
