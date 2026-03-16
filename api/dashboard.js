@@ -14,20 +14,7 @@ async function lv(endpoint, params = {}) {
   return res.json();
 }
 
-// Paginación automática para traer todos los recibos (máx 250 por página)
-async function getAllReceipts(params) {
-  let all = [], cursor = null;
-  do {
-    const p = { ...params, limit: 250 };
-    if (cursor) p.cursor = cursor;
-    const data = await lv("/receipts", p);
-    const page = data.receipts || [];
-    all = all.concat(page);
-    cursor = data.cursor || null;
-    if (page.length < 250) break;
-  } while (cursor);
-  return all;
-}
+
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin",  "*");
@@ -51,17 +38,15 @@ module.exports = async function handler(req, res) {
     const yearISO  = new Date(now.getFullYear(), 0, 1).toISOString();
     const nowISO   = now.toISOString();
 
-    // Peticiones en paralelo — todas con limit máx 250
-    const [stores, rToday, rWeek, rMonth, items] = await Promise.all([
+    // Todas las peticiones en paralelo
+    const [stores, rToday, rWeek, rMonth, rYear, items] = await Promise.all([
       lv("/stores"),
       lv("/receipts", { date_from: todayISO, date_to: nowISO, limit: 250 }),
       lv("/receipts", { date_from: weekISO,  date_to: nowISO, limit: 250 }),
       lv("/receipts", { date_from: monthISO, date_to: nowISO, limit: 250 }),
+      lv("/receipts", { date_from: yearISO,  date_to: nowISO, limit: 250 }),
       lv("/items", { limit: 250 }),
     ]);
-
-    // Año completo con paginación automática
-    const rYearAll = await getAllReceipts({ date_from: yearISO, date_to: nowISO });
 
     let inventory = { inventory_levels: [] };
     try { inventory = await lv("/inventory", { limit: 250 }); } catch (_) {}
@@ -71,7 +56,7 @@ module.exports = async function handler(req, res) {
       receipts_today:   rToday.receipts   || [],
       receipts_week:    rWeek.receipts    || [],
       receipts_month:   rMonth.receipts   || [],
-      receipts_year:    rYearAll,
+      receipts_year:    rYear.receipts || [],
       items:            items.items       || [],
       inventory_levels: inventory.inventory_levels || [],
     });
