@@ -1,8 +1,7 @@
 {
   "name": "nova-loyverse-api",
   "version": "1.0.0",
-  "description": "NOVA × Loyverse — API Serverless para Vercel",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "20.x"
   }
 }
