@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova — Dashboard Vivero</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8f7f4;
+      --surface: #ffffff;
+      --surface2: #f2f1ee;
+      --border: rgba(0,0,0,0.09);
+      --border-md: rgba(0,0,0,0.14);
+      --text: #1a1a18;
+      --text2: #5f5e5a;
+      --text3: #9e9d99;
+      --green: #3B6D11;
+      --green-bg: #EAF3DE;
+      --blue: #185FA5;
+      --blue-bg: #E6F1FB;
+      --amber: #854F0B;
+      --amber-bg: #FAEEDA;
+      --amber-border: #FAC775;
+      --red: #A32D2D;
+      --red-bg: #FCEBEB;
+      --radius: 10px;
+      --radius-lg: 14px;
+    }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* Layout */
+    .app { display: flex; flex-direction: column; min-height: 100vh; max-width: 900px; margin: 0 auto; padding: 0 16px 40px; }
+
+    /* Header */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 0 16px; gap: 12px; flex-wrap: wrap;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--blue-bg); color: var(--blue);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 500; font-size: 13px; flex-shrink: 0;
+    }
+    .store-name { font-size: 16px; font-weight: 500; }
+    .store-sub { font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 5px; margin-top: 1px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #639922; }
+    .header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .api-input {
+      font-size: 12px; padding: 7px 12px; border: 0.5px solid var(--border-md);
+      border-radius: 8px; background: var(--surface); color: var(--text);
+      width: 300px; outline: none;
+    }
+    .api-input:focus { border-color: var(--blue); }
+    .btn {
+      font-size: 12px; padding: 7px 16px; border-radius: 8px; cursor: pointer;
+      border: 0.5px solid var(--border-md); background: var(--surface);
+      color: var(--text); font-family: inherit; font-weight: 500;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: var(--surface2); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .tab {
+      font-size: 13px; padding: 10px 16px; cursor: pointer; color: var(--text2);
+      border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s;
+      font-family: inherit; background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+
+    /* Metrics grid */
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .metric {
+      background: var(--surface); border: 0.5px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+    }
+    .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .metric-value { font-size: 24px; font-weight: 500; color: var(--text); line-height: 1; }
+    .metric-sub { font-size: 11px; color: var(--text3); margin-top: 5px; }
+
+    /* Section */
+    .section-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; font-weight: 500; }
+
+    /* Items list */
+    .items-list { display: flex; flex-direction: column; gap: 6px; }
+    .item-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: var(--surface);
+      border: 0.5px solid var(--border); border-radius: var(--radius);
+    }
+    .item-name { font-weight: 500; color: var(--text); flex: 1; }
+    .item-qty { font-size: 12px; color: var(--text3); margin: 0 12px; }
+    .item-price { font-weight: 500; color: var(--text); }
+
+    /* Chart */
+    .chart-card {
+      background: var(--surface); border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px;
+    }
+    .chart-wrap { position: relative; width: 100%; height: 220px; margin-top: 12px; }
+
+    /* Alert box */
+    .alert-box {
+      background: var(--amber-bg); border: 0.5px solid var(--amber-border);
+      border-radius: var(--radius-lg); padding: 14px 16px;
+    }
+    .alert-title { font-size: 12px; font-weight: 500; color: var(--amber); margin-bottom: 10px; }
+    .alert-item {
+      font-size: 13px; color: #633806; padding: 6px 0;
+      border-bottom: 0.5px solid var(--amber-border); display: flex;
+      justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .alert-item:last-child { border-bottom: none; }
+    .badge {
+      font-size: 10px; padding: 2px 8px; border-radius: 20px;
+      background: var(--amber-bg); color: var(--amber);
+      border: 0.5px solid var(--amber-border); white-space: nowrap;
+    }
+    .analyze-btn {
+      margin-top: 12px; font-size: 12px; padding: 7px 14px;
+      border-radius: 8px; cursor: pointer; border: 0.5px solid var(--amber-border);
+      background: var(--surface); color: var(--amber); font-family: inherit;
+    }
+    .analyze-btn:hover { background: var(--amber-bg); }
+    .empty { font-size: 13px; color: var(--text3); padding: 20px; text-align: center; }
+
+    /* Chat */
+    .chat-wrap {
+      background: var(--surface); border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column;
+    }
+    .chat-messages { padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 260px; max-height: 400px; overflow-y: auto; }
+    .msg { display: flex; gap: 10px; align-items: flex-start; }
+    .msg.user { flex-direction: row-reverse; }
+    .msg-av {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 500; margin-top: 2px;
+    }
+    .msg-av.ai { background: var(--blue-bg); color: var(--blue); }
+    .msg-av.user { background: var(--surface2); color: var(--text2); }
+    .msg-bubble {
+      font-size: 13px; line-height: 1.65; padding: 10px 14px;
+      border-radius: var(--radius); max-width: 82%; color: var(--text);
+    }
+    .msg.ai .msg-bubble { background: var(--surface2); }
+    .msg.user .msg-bubble { background: var(--blue-bg); }
+    .quick-btns {
+      display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px;
+      border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border);
+    }
+    .quick-btn {
+      font-size: 11px; padding: 5px 12px; border-radius: 20px; cursor: pointer;
+      border: 0.5px solid var(--border-md); background: var(--surface);
+      color: var(--text2); font-family: inherit; transition: all 0.15s;
+    }
+    .quick-btn:hover { background: var(--surface2); color: var(--text); }
+    .chat-input-row { display: flex; gap: 8px; padding: 12px 16px; background: var(--surface2); }
+    .chat-textarea {
+      flex: 1; font-size: 13px; border: 0.5px solid var(--border-md);
+      border-radius: 8px; padding: 8px 12px; background: var(--surface);
+      color: var(--text); resize: none; height: 40px; font-family: inherit;
+      outline: none; line-height: 1.5;
+    }
+    .chat-textarea:focus { border-color: var(--blue); }
+    .send-btn {
+      font-size: 13px; padding: 8px 18px; border-radius: 8px; cursor: pointer;
+      border: 0.5px solid var(--border-md); background: var(--surface);
+      color: var(--text); font-family: inherit; font-weight: 500;
+    }
+    .send-btn:hover { background: var(--surface2); }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; gap: 10px; color: var(--text3); font-size: 13px; padding: 24px 0; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border-md); border-top-color: var(--text3); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    @media (max-width: 600px) {
+      .api-input { width: 100%; }
+      .header-right { width: 100%; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="header-left">
+      <div class="logo" id="logoEl">VB</div>
+      <div>
+        <div class="store-name" id="storeName">Nova Dashboard</div>
+        <div class="store-sub">
+          <div class="dot" id="statusDot" style="background:#9e9d99"></div>
+          <span id="storeCity">Conectando...</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-right">
+      <input class="api-input" id="apiUrl" value="/api/dashboard" placeholder="URL de la API" />
+      <button class="btn" onclick="loadData()">↺ Actualizar</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('hoy',this)">Hoy</button>
+    <button class="tab" onclick="showTab('semana',this)">Semana</button>
+    <button class="tab" onclick="showTab('mes',this)">Mes</button>
+    <button class="tab" onclick="showTab('alertas',this)">Alertas</button>
+    <button class="tab" onclick="showTab('ia',this)">IA Nova</button>
+  </div>
+
+  <!-- HOY -->
+  <div id="pane-hoy" class="tab-pane active">
+    <div id="loadingHoy" class="loading"><div class="spinner"></div>Cargando datos...</div>
+    <div id="contentHoy" style="display:none">
+      <div class="metrics" id="metricsHoy"></div>
+      <div class="section-label">Productos vendidos hoy</div>
+      <div class="items-list" id="listHoy"></div>
+    </div>
+  </div>
+
+  <!-- SEMANA -->
+  <div id="pane-semana" class="tab-pane">
+    <div class="metrics" id="metricsSemana"></div>
+    <div class="chart-card">
+      <div class="section-label">Ventas por día — últimos 7 días</div>
+      <div class="chart-wrap"><canvas id="chartSemana"></canvas></div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="section-label">Top productos de la semana</div>
+      <div class="items-list" id="listSemana"></div>
+    </div>
+  </div>
+
+  <!-- MES -->
+  <div id="pane-mes" class="tab-pane">
+    <div class="metrics" id="metricsMes"></div>
+    <div class="chart-card">
+      <div class="section-label">Ventas diarias este mes</div>
+      <div class="chart-wrap"><canvas id="chartMes"></canvas></div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="section-label">Top productos del mes</div>
+      <div class="items-list" id="listMes"></div>
+    </div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div id="pane-alertas" class="tab-pane">
+    <div id="alertasContent"><div class="empty">Cargando alertas...</div></div>
+  </div>
+
+  <!-- IA -->
+  <div id="pane-ia" class="tab-pane">
+    <div class="chat-wrap">
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg ai">
+          <div class="msg-av ai">N</div>
+          <div class="msg-bubble">Hola, soy Nova. Tengo acceso en tiempo real a tus datos de ventas. Podés preguntarme sobre proyecciones, productos más vendidos, análisis de monto $0, o cualquier cosa de tu negocio.</div>
+        </div>
+      </div>
+      <div class="quick-btns">
+        <button class="quick-btn" onclick="quickAsk('¿Cuáles son los productos más vendidos este mes y cuánto generaron?')">Más vendidos del mes</button>
+        <button class="quick-btn" onclick="quickAsk('¿Qué proyección de ventas tenés para este mes basándote en el ritmo actual?')">Proyección del mes</button>
+        <button class="quick-btn" onclick="quickAsk('Analizá todos los productos con monto $0 en los recibos. ¿Qué pueden ser?')">Analizar monto $0</button>
+        <button class="quick-btn" onclick="quickAsk('¿Cuál es el margen promedio y qué productos tienen mejor margen?')">Análisis de margen</button>
+        <button class="quick-btn" onclick="quickAsk('¿Cómo estuvo la semana? Dame un resumen ejecutivo.')">Resumen de la semana</button>
+      </div>
+      <div class="chat-input-row">
+        <textarea class="chat-textarea" id="chatInput" placeholder="Preguntale a Nova..." onkeydown="handleKey(event)"></textarea>
+        <button class="send-btn" onclick="sendMsg()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let data = null;
+  let chatHistory = [];
+  let charts = {};
+
+  // ── Utilidades ──────────────────────────────────────────────
+  const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
+
+  function salesOf(receipts) {
+    const r = (receipts || []).filter(r => r.receipt_type === 'SALE' && !r.cancelled_at);
+    const total  = r.reduce((s, x) => s + (x.total_money || 0), 0);
+    const cost   = r.reduce((s, x) => s + (x.line_items || []).reduce((c, i) => c + (i.cost_total || 0), 0), 0);
+    return { count: r.length, total, margin: total - cost, items: r };
+  }
+
+  function topItems(receipts, n = 8) {
+    const map = {};
+    (receipts || []).filter(r => r.receipt_type === 'SALE' && !r.cancelled_at).forEach(r => {
+      (r.line_items || []).forEach(i => {
+        if (!map[i.item_name]) map[i.item_name] = { qty: 0, total: 0, cost: 0 };
+        map[i.item_name].qty   += i.quantity    || 0;
+        map[i.item_name].total += i.total_money || 0;
+        map[i.item_name].cost  += i.cost_total  || 0;
+      });
+    });
+    return Object.entries(map).sort((a, b) => b[1].total - a[1].total).slice(0, n);
+  }
+
+  function zeroItems(receipts) {
+    const seen = new Set(), out = [];
+    (receipts || []).filter(r => r.receipt_type === 'SALE' && !r.cancelled_at).forEach(r => {
+      (r.line_items || []).forEach(i => {
+        if ((i.total_money === 0 || i.price === 0) && i.item_name) {
+          const k = i.item_name + '|' + r.receipt_number;
+          if (!seen.has(k)) { seen.add(k); out.push({ name: i.item_name, receipt: r.receipt_number, date: r.receipt_date }); }
+        }
+      });
+    });
+    return out;
+  }
+
+  function renderMetrics(elId, stats, extra = '') {
+    const pct = stats.total > 0 ? Math.round(stats.margin / stats.total * 100) : 0;
+    document.getElementById(elId).innerHTML = `
+      <div class="metric"><div class="metric-label">Total ventas</div><div class="metric-value">${fmt(stats.total)}</div><div class="metric-sub">${stats.count} transacciones</div></div>
+      <div class="metric"><div class="metric-label">Margen bruto</div><div class="metric-value">${fmt(stats.margin)}</div><div class="metric-sub">${pct}% del total</div></div>
+      <div class="metric"><div class="metric-label">Ticket promedio</div><div class="metric-value">${stats.count > 0 ? fmt(stats.total / stats.count) : '$0'}</div><div class="metric-sub">por venta</div></div>
+      ${extra}
+    `;
+  }
+
+  function renderList(elId, items) {
+    const el = document.getElementById(elId);
+    if (!items.length) { el.innerHTML = '<div class="empty">Sin datos</div>'; return; }
+    el.innerHTML = items.map(([name, d]) => `
+      <div class="item-row">
+        <span class="item-name">${name}</span>
+        <span class="item-qty">×${d.qty}</span>
+        <span class="item-price">${fmt(d.total)}</span>
+      </div>`).join('');
+  }
+
+  function makeBarChart(id, labels, values) {
+    if (charts[id]) charts[id].destroy();
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    charts[id] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: values, backgroundColor: '#B5D4F4', borderRadius: 5, borderSkipped: false }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { size: 11 }, color: '#9e9d99' }, grid: { display: false } },
+          y: { ticks: { callback: v => '$' + Math.round(v / 1000) + 'k', font: { size: 11 }, color: '#9e9d99' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+        }
+      }
+    });
+  }
+
+  function makeLineChart(id, labels, values) {
+    if (charts[id]) charts[id].destroy();
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    charts[id] = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets: [{ data: values, borderColor: '#378ADD', backgroundColor: 'rgba(183,212,244,0.25)', fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: '#378ADD' }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { size: 11 }, color: '#9e9d99' }, grid: { display: false } },
+          y: { ticks: { callback: v => '$' + Math.round(v / 1000) + 'k', font: { size: 11 }, color: '#9e9d99' }, grid: { color: 'rgba(0,0,0,0.05)' } }
+        }
+      }
+    });
+  }
+
+  // ── Carga de datos ───────────────────────────────────────────
+  async function loadData() {
+    const url = document.getElementById('apiUrl').value.trim();
+    document.getElementById('loadingHoy').style.display = 'flex';
+    document.getElementById('contentHoy').style.display = 'none';
+    document.getElementById('statusDot').style.background = '#9e9d99';
+    document.getElementById('storeCity').textContent = 'Conectando...';
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      data = await res.json();
+      renderAll();
+    } catch (e) {
+      document.getElementById('loadingHoy').innerHTML =
+        `<span style="color:#A32D2D;font-size:13px">Error: ${e.message}. Verificá la URL de la API.</span>`;
+    }
+  }
+
+  function renderAll() {
+    if (!data) return;
+
+    // Header
+    const store = data.store || {};
+    document.getElementById('storeName').textContent = store.name || 'Tu tienda';
+    document.getElementById('storeCity').textContent = store.city || '';
+    document.getElementById('statusDot').style.background = '#639922';
+    const ini = (store.name || 'VB').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    document.getElementById('logoEl').textContent = ini;
+
+    // HOY
+    const hoy = salesOf(data.receipts_today);
+    renderMetrics('metricsHoy', hoy);
+    renderList('listHoy', topItems(data.receipts_today));
+    document.getElementById('loadingHoy').style.display = 'none';
+    document.getElementById('contentHoy').style.display = 'block';
+
+    // SEMANA
+    const sem = salesOf(data.receipts_week);
+    renderMetrics('metricsSemana', sem);
+    renderList('listSemana', topItems(data.receipts_week));
+    const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const byDaySem = {};
+    (data.receipts_week || []).filter(r => r.receipt_type === 'SALE' && !r.cancelled_at).forEach(r => {
+      const d = new Date(r.receipt_date);
+      const k = dayNames[d.getDay()] + ' ' + d.getDate();
+      byDaySem[k] = (byDaySem[k] || 0) + (r.total_money || 0);
+    });
+    setTimeout(() => makeBarChart('chartSemana', Object.keys(byDaySem), Object.values(byDaySem).map(v => Math.round(v))), 50);
+
+    // MES
+    const mes = salesOf(data.receipts_month);
+    const today = new Date().getDate();
+    const proj = today > 0 ? Math.round(mes.total / today * 30) : 0;
+    renderMetrics('metricsMes', mes, `<div class="metric"><div class="metric-label">Proyección 30d</div><div class="metric-value">${fmt(proj)}</div><div class="metric-sub">ritmo actual</div></div>`);
+    renderList('listMes', topItems(data.receipts_month));
+    const byDayMes = {};
+    (data.receipts_month || []).filter(r => r.receipt_type === 'SALE' && !r.cancelled_at).forEach(r => {
+      const d = new Date(r.receipt_date).getDate();
+      byDayMes[d] = (byDayMes[d] || 0) + (r.total_money || 0);
+    });
+    const mesLabels = Object.keys(byDayMes).sort((a, b) => +a - +b);
+    setTimeout(() => makeLineChart('chartMes', mesLabels, mesLabels.map(k => Math.round(byDayMes[k]))), 50);
+
+    // ALERTAS
+    const allReceipts = [...(data.receipts_today || []), ...(data.receipts_week || []), ...(data.receipts_month || [])];
+    const zeros = zeroItems(allReceipts);
+    const alertEl = document.getElementById('alertasContent');
+    if (zeros.length === 0) {
+      alertEl.innerHTML = '<div class="empty">No se encontraron productos con monto $0 en el período analizado.</div>';
+    } else {
+      alertEl.innerHTML = `
+        <div class="alert-box">
+          <div class="alert-title">Productos con monto $0 — ${zeros.length} detectados (posibles regalos, bajas o errores)</div>
+          ${zeros.map(z => `
+            <div class="alert-item">
+              <span><strong>${z.name}</strong> — Recibo ${z.receipt}</span>
+              <span>${new Date(z.date).toLocaleDateString('es-AR')}</span>
+            </div>`).join('')}
+        </div>
+        <button class="analyze-btn" onclick="analyzeZeros()">Analizar con IA Nova →</button>
+      `;
+    }
+  }
+
+  function analyzeZeros() {
+    showTab('ia', document.querySelector('.tab:nth-child(5)'));
+    quickAsk('Analizá todos los productos con monto $0 que encontraste en los recibos. Para cada uno, decime si es probable que sea un regalo a cliente, una planta que no sobrevivió (garantía), un error de carga, o una muestra. Dame tu análisis y recomendaciones.');
+  }
+
+  // ── Tabs ─────────────────────────────────────────────────────
+  function showTab(name, el) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('pane-' + name).classList.add('active');
+    if (el) el.classList.add('active');
+  }
+
+  // ── Chat IA ──────────────────────────────────────────────────
+  function buildSystemPrompt() {
+    if (!data) return 'Sos Nova, asistente de análisis para un vivero. No hay datos cargados aún.';
+    const store = data.store || {};
+    const hoy = salesOf(data.receipts_today);
+    const sem = salesOf(data.receipts_week);
+    const mes = salesOf(data.receipts_month);
+    const today = new Date().getDate();
+    const proj = today > 0 ? Math.round(mes.total / today * 30) : 0;
+    const top5 = topItems(data.receipts_month, 5).map(([n, d]) =>
+      `  - ${n}: ${d.qty} unidades, ${fmt(d.total)}, margen ${fmt(d.total - d.cost)}`).join('\n');
+    const allR = [...(data.receipts_today||[]),...(data.receipts_week||[]),...(data.receipts_month||[])];
+    const zeros = zeroItems(allR).map(z => `  - ${z.name} (recibo ${z.receipt}, ${new Date(z.date).toLocaleDateString('es-AR')})`).join('\n');
+
+    return `Sos Nova, asistente inteligente de análisis de negocio para "${store.name}" en ${store.city}, Argentina. Es un vivero (venta de plantas, macetas, sustratos y accesorios).
+
+DATOS EN TIEMPO REAL — ${new Date().toLocaleDateString('es-AR')}:
+
+Hoy:
+  - Ventas: ${fmt(hoy.total)} (${hoy.count} transacciones)
+  - Margen bruto: ${fmt(hoy.margin)} (${hoy.total>0?Math.round(hoy.margin/hoy.total*100):0}%)
+  - Ticket promedio: ${hoy.count>0?fmt(hoy.total/hoy.count):'$0'}
+
+Últimos 7 días:
+  - Ventas: ${fmt(sem.total)} (${sem.count} transacciones)
+  - Promedio diario: ${fmt(sem.total/7)}
+  - Margen: ${fmt(sem.margin)}
+
+Este mes (día ${today}):
+  - Ventas: ${fmt(mes.total)} (${mes.count} transacciones)
+  - Margen: ${fmt(mes.margin)} (${mes.total>0?Math.round(mes.margin/mes.total*100):0}%)
+  - Proyección al mes completo: ${fmt(proj)}
+
+Top 5 productos del mes:
+${top5 || '  (sin datos)'}
+
+Productos con monto $0 detectados (${zeroItems(allR).length}):
+${zeros || '  Ninguno'}
+
+INSTRUCCIONES:
+- Respondé en español rioplatense, de forma concisa y útil.
+- Para proyecciones, usá el ritmo de ventas actual y aclará las suposiciones.
+- Para monto $0, considerá: regalo/cortesía a cliente, planta muerta devuelta (garantía), error de carga, muestra, promoción.
+- Usá los datos reales para responder. Si te preguntan algo que no está en los datos, decilo.
+- Formato limpio, sin markdown excesivo. Podés usar listas cuando sea útil.`;
+  }
+
+  async function sendMsg() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    addBubble('user', text);
+    chatHistory.push({ role: 'user', content: text });
+    const typingEl = addBubble('ai', '...');
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: buildSystemPrompt(),
+          messages: chatHistory
+        })
+      });
+      const d = await res.json();
+      const reply = d.content?.find(c => c.type === 'text')?.text || 'Sin respuesta.';
+      typingEl.textContent = reply;
+      chatHistory.push({ role: 'assistant', content: reply });
+    } catch (e) {
+      typingEl.textContent = 'Error al conectar con la IA: ' + e.message;
+    }
+  }
+
+  function addBubble(role, text) {
+    const msgs = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.innerHTML = `<div class="msg-av ${role}">${role === 'ai' ? 'N' : 'Vos'}</div><div class="msg-bubble">${text}</div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div.querySelector('.msg-bubble');
+  }
+
+  function quickAsk(text) {
+    showTab('ia', document.querySelector('.tab:nth-child(5)'));
+    document.getElementById('chatInput').value = text;
+    sendMsg();
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  }
+
+  // Auto-cargar al inicio
+  loadData();
+</script>
+</body>
+</html>
